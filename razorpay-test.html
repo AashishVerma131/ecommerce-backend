@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Razorpay Test Payment</title>
+
+    <!-- Razorpay Checkout -->
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f1f5f9;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            width: 420px;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .amount {
+            text-align: center;
+            font-size: 36px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+
+        .info {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+        }
+
+        .info p {
+            margin: 10px 0;
+            word-break: break-all;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            background: #3399cc;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        #result {
+            margin-top: 25px;
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 10px;
+            word-break: break-all;
+            display: none;
+        }
+
+        .success {
+            color: green;
+        }
+
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>🛒 E-Commerce Payment</h1>
+
+    <div class="amount">
+        ₹499.99
+    </div>
+
+    <div class="info">
+
+        <p>
+            <strong>Order ID:</strong><br>
+            ord_7b25c4513473
+        </p>
+
+        <p>
+            <strong>Razorpay Order ID:</strong><br>
+            order_TaFfMLr0dE3wcT
+        </p>
+
+        <p>
+            <strong>Currency:</strong>
+            INR
+        </p>
+
+        <p>
+            <strong>Payment Mode:</strong>
+            Test
+        </p>
+
+    </div>
+
+    <button onclick="payNow()">
+        Pay ₹499.99
+    </button>
+
+    <div id="result"></div>
+
+</div>
+
+
+<script>
+
+    function payNow() {
+
+        const options = {
+
+            // EXACT Razorpay Test Key from your backend response
+            key: "rzp_test_TZdA5e8ahuW5ik",
+
+            // ₹499.99 = 49999 paise
+            amount: 49999,
+
+            currency: "INR",
+
+            name: "E-Commerce Store",
+
+            description: "Order ord_7b25c4513473",
+
+            // EXACT Razorpay Order ID from your response
+            order_id: "order_TaFfMLr0dE3wcT",
+
+            handler: function (response) {
+
+                console.log("================================");
+                console.log("PAYMENT SUCCESS");
+                console.log("================================");
+
+                console.log(
+                    "Razorpay Payment ID:",
+                    response.razorpay_payment_id
+                );
+
+                console.log(
+                    "Razorpay Order ID:",
+                    response.razorpay_order_id
+                );
+
+                console.log(
+                    "Razorpay Signature:",
+                    response.razorpay_signature
+                );
+
+
+                document.getElementById("result").style.display = "block";
+
+                document.getElementById("result").innerHTML = `
+
+                <h3 class="success">
+                    ✅ Payment Successful
+                </h3>
+
+                <p>
+                    <strong>Payment ID:</strong><br>
+                    ${response.razorpay_payment_id}
+                </p>
+
+                <p>
+                    <strong>Order ID:</strong><br>
+                    ${response.razorpay_order_id}
+                </p>
+
+                <p>
+                    <strong>Signature:</strong><br>
+                    ${response.razorpay_signature}
+                </p>
+
+                <hr>
+
+                <p>
+                    <strong>Now use these 3 values in your backend verification.</strong>
+                </p>
+            `;
+            },
+
+
+            prefill: {
+
+                name: "Test Customer",
+
+                email: "test@example.com",
+
+                contact: "9999999999"
+
+            },
+
+
+            notes: {
+
+                ecommerce_order_id:
+                    "ord_7b25c4513473"
+
+            },
+
+
+            theme: {
+
+                color: "#3399cc"
+
+            }
+
+        };
+
+
+        const razorpay = new Razorpay(options);
+
+
+        razorpay.on(
+            "payment.failed",
+            function (response) {
+
+                console.error(response.error);
+
+                document.getElementById("result").style.display = "block";
+
+                document.getElementById("result").innerHTML = `
+
+                <h3 class="error">
+                    ❌ Payment Failed
+                </h3>
+
+                <p>
+                    ${response.error.description}
+                </p>
+
+                <p>
+                    Code: ${response.error.code}
+                </p>
+
+            `;
+            }
+        );
+
+
+        razorpay.open();
+
+    }
+
+</script>
+
+</body>
+</html>
