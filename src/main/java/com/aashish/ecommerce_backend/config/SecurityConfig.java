@@ -89,9 +89,10 @@ public class SecurityConfig {
                         // Allow browser CORS preflight requests
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                        // Authentication
+                        // Authentication + FCM registration
                         .requestMatchers(
-                                "/api/auth/**"
+                                "/api/auth/**",
+                                "/api/fcm/register"
                         ).permitAll()
 
                         // USER + ADMIN can view products
