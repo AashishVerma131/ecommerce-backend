@@ -92,7 +92,7 @@ public class SecurityConfig {
                         // Authentication + FCM registration
                         .requestMatchers(
                                 "/api/auth/**",
-                                "/api/fcm/register"
+                                "/api/fcm/token"
                         ).permitAll()
 
                         // USER + ADMIN can view products
