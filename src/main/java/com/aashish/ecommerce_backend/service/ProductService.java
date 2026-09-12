@@ -5,10 +5,10 @@ import com.aashish.ecommerce_backend.dto.ProductResponse;
 import com.aashish.ecommerce_backend.entity.Product;
 import com.aashish.ecommerce_backend.exception.ResourceNotFoundException;
 import com.aashish.ecommerce_backend.repository.ProductRepository;
-import com.aashish.ecommerce_backend.storage.BackblazeStorageService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+
 
 import java.util.List;
 
@@ -16,11 +16,11 @@ import java.util.List;
 public class ProductService {
 
     private final ProductRepository productRepository;
-    private final BackblazeStorageService storageService;
+    private final S3StorageService storageService;
 
     public ProductService(
             ProductRepository productRepository,
-            BackblazeStorageService storageService) {
+            S3StorageService storageService) {
 
         this.productRepository = productRepository;
         this.storageService = storageService;
@@ -60,6 +60,7 @@ public class ProductService {
 
         String imageUrl = null;
 
+        // Upload image to S3-compatible storage
         if (image != null && !image.isEmpty()) {
             imageUrl = storageService.uploadFile(image);
         }
@@ -132,6 +133,7 @@ public class ProductService {
         product.setStock(request.getStock());
         product.setCategory(request.getCategory());
 
+        // Keep existing image unless a new image URL is supplied
         if (request.getImageUrl() != null) {
             product.setImageUrl(request.getImageUrl());
         }
@@ -166,6 +168,7 @@ public class ProductService {
         product.setStock(request.getStock());
         product.setCategory(request.getCategory());
 
+        // Upload new image only when one is provided
         if (image != null && !image.isEmpty()) {
 
             String imageUrl =
@@ -195,9 +198,30 @@ public class ProductService {
                         )
                 );
 
+        // Delete image from S3 if product has an image
+        if (product.getImageUrl() != null &&
+                !product.getImageUrl().isBlank()) {
+
+            String imageUrl = product.getImageUrl();
+
+            String marker = ".amazonaws.com/";
+
+            int index = imageUrl.indexOf(marker);
+
+            if (index != -1) {
+
+                String key =
+                        imageUrl.substring(
+                                index + marker.length()
+                        );
+
+                storageService.deleteFile(key);
+            }
+        }
+
+        // Delete product from database
         productRepository.delete(product);
     }
-
 
     // =========================================================
     // ENTITY → RESPONSE

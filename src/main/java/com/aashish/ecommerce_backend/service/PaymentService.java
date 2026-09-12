@@ -3,6 +3,7 @@ package com.aashish.ecommerce_backend.service;
 import com.aashish.ecommerce_backend.dto.PaymentOrderResponse;
 import com.aashish.ecommerce_backend.dto.PaymentVerificationRequest;
 import com.aashish.ecommerce_backend.entity.Order;
+import com.aashish.ecommerce_backend.entity.OrderItem;
 import com.aashish.ecommerce_backend.entity.Payment;
 import com.aashish.ecommerce_backend.entity.PaymentStatus;
 import com.aashish.ecommerce_backend.entity.User;
@@ -20,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -136,7 +138,8 @@ public class PaymentService {
 
         try {
 
-            JSONObject verificationData = new JSONObject();
+            JSONObject verificationData =
+                    new JSONObject();
 
             verificationData.put(
                     "razorpay_order_id",
@@ -153,12 +156,14 @@ public class PaymentService {
                     request.getRazorpaySignature()
             );
 
-            boolean isValid = Utils.verifyPaymentSignature(
-                    verificationData,
-                    razorpayKeySecret
-            );
+            boolean isValid =
+                    Utils.verifyPaymentSignature(
+                            verificationData,
+                            razorpayKeySecret
+                    );
 
             if (!isValid) {
+
                 throw new RuntimeException(
                         "Invalid Razorpay payment signature"
                 );
@@ -190,63 +195,165 @@ public class PaymentService {
                     LocalDateTime.now()
             );
 
-            paymentRepository.save(payment);
+            Payment savedPayment =
+                    paymentRepository.save(payment);
 
 
-            // ================================
+            // ==========================================
+            // GET ORDER
+            // ==========================================
+
+            Order order =
+                    orderRepository
+                            .findById(
+                                    savedPayment.getOrderId()
+                            )
+                            .orElse(null);
+
+
+            // ==========================================
             // FIREBASE ORDER CONFIRMATION
-            // ================================
+            // ==========================================
 
             try {
 
-                Order order = orderRepository
-                        .findById(payment.getOrderId())
-                        .orElse(null);
-
                 if (order != null) {
 
-                    fcmNotificationService.sendOrderConfirmation(
-                            order.getId(),
-                            payment.getAmount().toString()
-                    );
+                    fcmNotificationService
+                            .sendOrderConfirmation(
+                                    order.getId(),
+                                    savedPayment
+                                            .getAmount()
+                                            .toString()
+                            );
                 }
 
             } catch (Exception notificationException) {
 
                 System.err.println(
                         "FCM notification failed: "
-                                + notificationException.getMessage()
+                                + notificationException
+                                .getMessage()
                 );
             }
 
 
-            // ================================
+            // ==========================================
             // WHATSAPP ORDER CONFIRMATION
-            // ================================
+            // ==========================================
 
             try {
 
-                Order order = orderRepository
-                        .findById(payment.getOrderId())
-                        .orElse(null);
-
                 if (order != null
                         && order.getUser() != null
-                        && order.getUser().getPhoneNumber() != null
-                        && !order.getUser().getPhoneNumber().isBlank()) {
+                        && order.getUser()
+                        .getPhoneNumber() != null
+                        && !order.getUser()
+                        .getPhoneNumber()
+                        .isBlank()) {
 
-                    whatsAppService.sendOrderConfirmation(
-                            order.getUser().getPhoneNumber()
+                    String phoneNumber =
+                            order.getUser()
+                                    .getPhoneNumber();
+
+
+                    // ----------------------------------
+                    // BUILD ORDER ITEMS TEXT
+                    // ----------------------------------
+
+                    String itemsText =
+                            order.getItems()
+                                    .stream()
+                                    .map(this::formatOrderItem)
+                                    .collect(
+                                            Collectors.joining("\n")
+                                    );
+
+
+                    // ----------------------------------
+                    // ORDER ID
+                    // {{1}}
+                    // ----------------------------------
+
+                    String orderId =
+                            order.getId();
+
+
+                    // ----------------------------------
+                    // TOTAL AMOUNT
+                    // {{3}}
+                    // ----------------------------------
+
+                    String amount =
+                            savedPayment
+                                    .getAmount()
+                                    .toPlainString();
+
+
+                    // ----------------------------------
+                    // PAYMENT STATUS
+                    // {{4}}
+                    // ----------------------------------
+
+                    String paymentStatus =
+                            "Successful";
+
+
+                    System.out.println(
+                            "========== WHATSAPP ORDER CONFIRMATION =========="
                     );
+
+                    System.out.println(
+                            "Phone: " + phoneNumber
+                    );
+
+                    System.out.println(
+                            "Order ID: " + orderId
+                    );
+
+                    System.out.println(
+                            "Items: " + itemsText
+                    );
+
+                    System.out.println(
+                            "Amount: " + amount
+                    );
+
+                    System.out.println(
+                            "Payment Status: "
+                                    + paymentStatus
+                    );
+
+                    System.out.println(
+                            "================================================="
+                    );
+
+
+                    // ----------------------------------
+                    // SEND WHATSAPP TEMPLATE
+                    // ----------------------------------
+
+                    whatsAppService
+                            .sendOrderConfirmation(
+                                    phoneNumber,
+                                    orderId,
+                                    itemsText,
+                                    amount,
+                                    paymentStatus
+                            );
                 }
 
             } catch (Exception notificationException) {
 
                 System.err.println(
                         "WhatsApp notification failed: "
-                                + notificationException.getMessage()
+                                + notificationException
+                                .getMessage()
                 );
+
+                notificationException.printStackTrace();
             }
+
 
             return "Payment verified successfully";
 
@@ -257,5 +364,35 @@ public class PaymentService {
                     e
             );
         }
+    }
+
+
+    // ==============================================
+    // FORMAT ONE ORDER ITEM
+    // ==============================================
+
+    private String formatOrderItem(
+            OrderItem item) {
+
+        String productName =
+                item.getProduct()
+                        .getName();
+
+        Integer quantity =
+                item.getQuantity();
+
+        BigDecimal unitPrice =
+                item.getPrice();
+
+        BigDecimal itemTotal =
+                unitPrice.multiply(
+                        BigDecimal.valueOf(quantity)
+                );
+
+        return productName
+                + " × "
+                + quantity
+                + " — ₹"
+                + itemTotal.toPlainString();
     }
 }

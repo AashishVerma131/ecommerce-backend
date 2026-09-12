@@ -21,9 +21,19 @@ public class WhatsAppController {
             @RequestBody Map<String, String> request) {
 
         String phoneNumber = request.get("phoneNumber");
+        String orderId = request.get("orderId");
+        String items = request.get("items");
+        String amount = request.get("amount");
+        String paymentStatus = request.get("paymentStatus");
 
-        return ResponseEntity.ok(
-                whatsAppService.sendOrderConfirmation(phoneNumber)
+        String response = whatsAppService.sendOrderConfirmation(
+                phoneNumber,
+                orderId,
+                items,
+                amount,
+                paymentStatus
         );
+
+        return ResponseEntity.ok(response);
     }
 }

@@ -86,6 +86,9 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
+                        // Public backend landing page
+                        .requestMatchers("/", "/error").permitAll()
+
                         // Allow browser CORS preflight requests
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
@@ -117,6 +120,7 @@ public class SecurityConfig {
                                 "/api/orders/**"
                         ).hasRole("USER")
 
+                        // Everything else requires authentication
                         .anyRequest().authenticated()
                 )
 
