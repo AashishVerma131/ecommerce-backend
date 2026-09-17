@@ -26,12 +26,15 @@ public class WhatsAppController {
         String amount = request.get("amount");
         String paymentStatus = request.get("paymentStatus");
 
+        String productImageUrl = request.get("productImageUrl");
+
         String response = whatsAppService.sendOrderConfirmation(
                 phoneNumber,
                 orderId,
                 items,
                 amount,
-                paymentStatus
+                paymentStatus,
+                productImageUrl
         );
 
         return ResponseEntity.ok(response);

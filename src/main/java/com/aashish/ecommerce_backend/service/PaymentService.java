@@ -219,13 +219,11 @@ public class PaymentService {
 
                 if (order != null) {
 
-                    fcmNotificationService
-                            .sendOrderConfirmation(
-                                    order.getId(),
-                                    savedPayment
-                                            .getAmount()
-                                            .toString()
-                            );
+                    fcmNotificationService.sendOrderConfirmation(
+                            order.getUser().getId(),
+                            order.getId(),
+                            savedPayment.getAmount().toString()
+                    );
                 }
 
             } catch (Exception notificationException) {
@@ -299,6 +297,26 @@ public class PaymentService {
                             "Successful";
 
 
+                    // ----------------------------------
+                    // PRODUCT IMAGE
+                    // WHATSAPP IMAGE HEADER
+                    // ----------------------------------
+
+                    String productImageUrl =
+                            order.getItems()
+                                    .stream()
+                                    .map(item ->
+                                            item.getProduct()
+                                                    .getImageUrl()
+                                    )
+                                    .filter(url ->
+                                            url != null
+                                                    && !url.isBlank()
+                                    )
+                                    .findFirst()
+                                    .orElse(null);
+
+
                     System.out.println(
                             "========== WHATSAPP ORDER CONFIRMATION =========="
                     );
@@ -325,6 +343,11 @@ public class PaymentService {
                     );
 
                     System.out.println(
+                            "Product Image: "
+                                    + productImageUrl
+                    );
+
+                    System.out.println(
                             "================================================="
                     );
 
@@ -333,14 +356,26 @@ public class PaymentService {
                     // SEND WHATSAPP TEMPLATE
                     // ----------------------------------
 
-                    whatsAppService
-                            .sendOrderConfirmation(
-                                    phoneNumber,
-                                    orderId,
-                                    itemsText,
-                                    amount,
-                                    paymentStatus
-                            );
+                    if (productImageUrl != null
+                            && !productImageUrl.isBlank()) {
+
+                        whatsAppService
+                                .sendOrderConfirmation(
+                                        phoneNumber,
+                                        orderId,
+                                        itemsText,
+                                        amount,
+                                        paymentStatus,
+                                        productImageUrl
+                                );
+
+                    } else {
+
+                        System.err.println(
+                                "WhatsApp notification skipped: "
+                                        + "Product image URL is missing"
+                        );
+                    }
                 }
 
             } catch (Exception notificationException) {

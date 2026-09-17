@@ -28,12 +28,6 @@ public class WhatsAppService {
     @Value("${whatsapp.template-language}")
     private String templateLanguage;
 
-    /*
-     * Public S3 image URL used by the WhatsApp template header.
-     */
-    @Value("${whatsapp.confirmed-order-image-url}")
-    private String confirmedOrderImageUrl;
-
     private final RestClient restClient =
             RestClient.builder().build();
 
@@ -42,7 +36,8 @@ public class WhatsAppService {
             String orderId,
             String items,
             String amount,
-            String paymentStatus) {
+            String paymentStatus,
+            String productImageUrl) {
 
         String url =
                 apiUrl + "/" + phoneNumberId + "/messages";
@@ -73,7 +68,10 @@ public class WhatsAppService {
                         "components",
                         List.of(
 
+                                // ==========================================
                                 // IMAGE HEADER
+                                // ==========================================
+
                                 Map.of(
                                         "type",
                                         "header",
@@ -87,13 +85,16 @@ public class WhatsAppService {
                                                         "image",
                                                         Map.of(
                                                                 "link",
-                                                                confirmedOrderImageUrl
+                                                                productImageUrl
                                                         )
                                                 )
                                         )
                                 ),
 
+                                // ==========================================
                                 // BODY VARIABLES
+                                // ==========================================
+
                                 Map.of(
                                         "type",
                                         "body",
@@ -142,47 +143,63 @@ public class WhatsAppService {
                 )
         );
 
+        // ==========================================
+        // DEBUG LOG
+        // ==========================================
+
         System.out.println(
                 "========== WHATSAPP REQUEST =========="
         );
 
-        System.out.println("URL: " + url);
+        System.out.println(
+                "URL: " + url
+        );
+
         System.out.println(
                 "Template: " + templateName
         );
+
         System.out.println(
                 "Language: " + templateLanguage
         );
+
         System.out.println(
                 "Recipient: " + recipientPhoneNumber
         );
+
         System.out.println(
                 "Order ID: " + orderId
         );
+
         System.out.println(
                 "Items: " + items
         );
+
         System.out.println(
                 "Amount: " + amount
         );
+
         System.out.println(
                 "Payment Status: " + paymentStatus
         );
+
         System.out.println(
-                "Image: " + confirmedOrderImageUrl
+                "Product Image: " + productImageUrl
         );
 
         System.out.println(
                 "======================================"
         );
 
+        // ==========================================
+        // SEND WHATSAPP REQUEST
+        // ==========================================
+
         try {
 
-            return restClient.post()
+            String response = restClient.post()
                     .uri(url)
-                    .contentType(
-                            MediaType.APPLICATION_JSON
-                    )
+                    .contentType(MediaType.APPLICATION_JSON)
                     .header(
                             "Authorization",
                             "Bearer " + accessToken
@@ -191,7 +208,27 @@ public class WhatsAppService {
                     .retrieve()
                     .body(String.class);
 
+            // ==========================================
+            // META RESPONSE
+            // ==========================================
+
+            System.out.println(
+                    "========== META WHATSAPP RESPONSE =========="
+            );
+
+            System.out.println(response);
+
+            System.out.println(
+                    "============================================="
+            );
+
+            return response;
+
         } catch (Exception e) {
+
+            // ==========================================
+            // WHATSAPP ERROR
+            // ==========================================
 
             System.err.println(
                     "========== WHATSAPP ERROR =========="

@@ -5,6 +5,7 @@ import com.aashish.ecommerce_backend.entity.FcmToken;
 import com.aashish.ecommerce_backend.service.FcmTokenService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -16,11 +17,14 @@ public class FcmTokenController {
 
     @PostMapping("/token")
     public ResponseEntity<FcmToken> saveToken(
-            @RequestBody FcmTokenRequest request) {
+            @RequestBody FcmTokenRequest request,
+            Authentication authentication) {
 
         return ResponseEntity.ok(
-                fcmTokenService.saveToken(request)
+                fcmTokenService.saveToken(
+                        request,
+                        authentication.getName()
+                )
         );
     }
 }
-
